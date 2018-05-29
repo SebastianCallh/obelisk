@@ -19,7 +19,6 @@ let #TODO: Upstream
         then removeConfigureFlag drv' "--ghc-option=-optl=-dead_strip"
         else drv';
 
-
     addOptparseApplicativeCompletionScripts = exeName: pkg: overrideCabal pkg (drv: {
       postInstall = (drv.postInstall or "") + ''
         BASH_COMP_DIR="$out/share/bash-completion/completions"
@@ -109,18 +108,14 @@ in
 with pkgs.lib;
 rec {
   inherit reflex-platform;
-  inherit (reflex-platform) nixpkgs;
+  inherit (reflex-platform) nixpkgs pinBuildInputs;
   path = reflex-platform.filterGit ./.;
   command = ghcObelisk.obelisk-command;
-  shell = nixpkgs.stdenv.mkDerivation {
-    name = "obelisk-shell";
-    src = null;
-    nativeBuildInputs = [
-      command
-      pkgs.openssh
-      pkgs.gitAndTools.hub
-    ];
-  };
+  shell = pinBuildInputs "obelisk-shell" ([
+    command
+    pkgs.openssh
+    pkgs.gitAndTools.hub
+  ]) [];
 
   selftest = pkgs.writeScript "selftest" ''
     #!/usr/bin/env bash
@@ -155,16 +150,16 @@ rec {
     pkgs.runCommand "serverExe" { buildInputs = [ pkgs.closurecompiler ]; } ''
       mkdir $out
       set -eux
-      ln -s "${backend}"/bin/backend $out/backend
+      ln -s "${justStaticExecutables backend}"/bin/backend $out/backend
       ln -s "${assets}" $out/static
       ln -s "${config}" $out/config
 
       mkdir $out/frontend.jsexe
       cd $out/frontend.jsexe
-      ln -s "${frontend}/bin/frontend.jsexe/all.js" all.unminified.js
+      ln -s "${justStaticExecutables frontend}/bin/frontend.jsexe/all.js" all.unminified.js
       closure-compiler --externs "${reflex-platform.ghcjsExternsJs}" -O ADVANCED --create_source_map="all.js.map" --source_map_format=V3 --js_output_file="all.js" all.unminified.js
       echo "//# sourceMappingURL=all.js.map" >> all.js
-    '';
+    ''; #TODO: run frontend.jsexe through the asset processing pipeline
 
   server = exe: hostName:
     let system = "x86_64-linux";
