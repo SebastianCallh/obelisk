@@ -10,14 +10,12 @@ import Common.Api (commonStuff)
 import Frontend (frontend)
 
 backend :: IO ()
-backend = Ob.backend cfg hdlrs
-  where
-    cfg = Ob.def
-      { Ob._backendConfig_head = fst frontend
-      }
-    hdlrs =
+backend = Ob.backend $ Ob.def
+  { Ob._backendConfig_head = fst frontend
+  , Ob._backendConfig_routes =
       [ ("/api", someApi)
       ]
+  }
 
 someApi :: Snap ()
 someApi = do

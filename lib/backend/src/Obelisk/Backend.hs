@@ -24,14 +24,15 @@ import Snap.Internal.Http.Server.Config (Config (accessLog, errorLog), ConfigLog
 -- use 'def'.
 data BackendConfig = BackendConfig
   { _backendConfig_head :: StaticWidget () ()
+  , _backendConfig_routes :: [(BS.ByteString, Snap ())]
   }
 
 instance Default BackendConfig where
-  def = BackendConfig (return ())
+  def = BackendConfig (pure ()) def
 
 -- | Start an Obelisk backend
-backend :: BackendConfig -> [(BS.ByteString, Snap ())] -> IO ()
-backend cfg hdlrs = do
+backend :: BackendConfig -> IO ()
+backend cfg = do
   -- Make output more legible by decreasing the likelihood of output from
   -- multiple threads being interleaved
   hSetBuffering stderr LineBuffering
@@ -48,6 +49,6 @@ backend cfg hdlrs = do
         [ ("", serveApp "" appCfg)
         , ("", serveAssets "frontend.jsexe.assets" "frontend.jsexe") --TODO: Can we prevent naming conflicts between frontend.jsexe and static?
         , ("", serveAssets "static.assets" "static")
-        ] <> hdlrs
+        ] <> _backendConfig_routes cfg
   -- Start the web server
   httpServe httpConf $ route routes
